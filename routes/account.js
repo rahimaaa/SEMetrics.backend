@@ -1,7 +1,8 @@
 const express = require("express");
 const passport = require("passport");
 const accountController = require("../controllers/account");
-
+const ensureAuthenticated = require("../middleware/ensureAuthenticated");
+const axios = require("axios");
 const router = express.Router();
 
 router.use(passport.initialize());
@@ -17,13 +18,25 @@ passport.deserializeUser(function (obj, done) {
 
 router.get("/", ensureAuthenticated, accountController.user);
 
-// Middleware to ensure that the user is authenticateds
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  } else {
-    console.log("Unauthorized");
+router.get("/repos", ensureAuthenticated, async (req, res, next) => {
+  try {
+    const access_token = req.user.access_token;
+
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/user/repos`;
+    const githubApiHeaders = {
+      Accept: "application/json",
+      Authorization: `Bearer ${access_token}`,
+    };
+
+    const response = await axios.get(githubApiUrl, {
+      headers: githubApiHeaders,
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching GitHub user data:", error);
+    res.status(500).json({ error: "Error fetching GitHub user data" });
   }
-}
+});
 
 module.exports = router;
