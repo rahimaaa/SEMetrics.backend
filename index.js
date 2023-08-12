@@ -18,7 +18,8 @@ app.enable("trust proxy");
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
+      "http://localhost:3000",
+      // process.env.FRONTEND_URL || "http://localhost:3000",
       process.env.GITHUB_CALLBACK_URL,
     ],
     credentials: true,
@@ -50,6 +51,7 @@ app.use(
 // });
 
 app.get("/", (req, res) => {
+  console.log("got to the endpoint");
   res.send("Hey It's Working");
 });
 

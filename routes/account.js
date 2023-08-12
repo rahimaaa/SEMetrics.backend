@@ -15,6 +15,15 @@ passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
 
-router.get("/", accountController.user);
+router.get("/", ensureAuthenticated, accountController.user);
+
+// Middleware to ensure that the user is authenticateds
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  } else {
+    console.log("Unauthorized");
+  }
+}
 
 module.exports = router;
