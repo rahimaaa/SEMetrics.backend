@@ -1,11 +1,7 @@
 const express = require("express");
 const github = require("../utils/github");
 const passport = require("passport");
-const authController = require("../controllers/auth");
-const { User } = require("../database/models");
 const router = express.Router();
-const axios = require("axios");
-const querystring = require("querystring");
 
 passport.use(github);
 
@@ -26,29 +22,6 @@ router.get(
   (req, res) => {}
 );
 
-// Function to get the access token from GitHub using the provided code
-const getAccessToken = async (code) => {
-  try {
-    const response = await axios.post(
-      `https://github.com/login/oauth/access_token?client_id=${process.env.GITHUB_CLIENT_ID}&client_secret=${process.env.GITHUB_CLIENT_SECRET}&code=${code}`,
-      {},
-      {
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
-    const data = response.data;
-    console.log("data:\n", data);
-    if (data.access_token) {
-      return data.access_token;
-    } else {
-      console.log("No access token received from GitHub");
-    }
-  } catch (error) {
-    console.error("Error getting access token:", error);
-  }
-};
 router.get(
   "/github/callback",
   passport.authenticate("github", { failureRedirect: "/login" }),
@@ -58,6 +31,23 @@ router.get(
   }
 );
 
-router.get("/logout", authController.logout);
+router.get("/logout", (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      return next(err);
+    }
+    console.log("Logout successful in req.logout");
+
+    req.session.destroy(function (err) {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error occurred during logout");
+      } else {
+        res.clearCookie("connect.sid");
+        res.send("Logout successful");
+      }
+    });
+  });
+});
 
 module.exports = router;

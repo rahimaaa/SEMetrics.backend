@@ -8,22 +8,29 @@ module.exports = new GitHubStrategy(
     callbackURL: process.env.GITHUB_CALLBACK_URL,
     scope: ["user:email", "read:user", "repo"],
   },
-  function (accessToken, refreshToken, profile, done) {
-    console.log("in github strategy");
-    console.log("acccesToken: ", accessToken);
-    User.findOne({ githubId: profile.id }).then((user, err) => {
-      if (!user)
-        return User.create({
+  async function (accessToken, refreshToken, profile, done) {
+    console.log("in GitHub strategy");
+    console.log("accessToken: ", accessToken);
+
+    try {
+      const user = await User.findOne({ where: { githubId: profile.id } });
+
+      if (!user) {
+        const newUser = await User.create({
           githubId: profile.id,
           fullname: profile.displayName,
           username: profile.username,
           email: profile.emails[0].value,
           profilePhoto: profile._json.avatar_url,
           access_token: accessToken,
-        }).then((user, err) => {
-          return done(null, user);
         });
-      else return done(null, user);
-    });
+        return done(null, newUser);
+      } else {
+        return done(null, user);
+      }
+    } catch (error) {
+      console.error("Error in GitHubStrategy: ", error);
+      return done(error);
+    }
   }
 );
