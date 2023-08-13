@@ -4,11 +4,12 @@ const cors = require("cors");
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const app = express();
-const { db } = require("./database/db");
-const github = require("./utils/github");
-const passport = require("passport");
+const db = require("./database/db");
 const authRouter = require("./routes/auth");
 const accountRouter = require("./routes/account");
+const SequelizeStore = require("connect-session-sequelize")(session.Store);
+
+const sessionStore = new SequelizeStore({ db });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -31,24 +32,18 @@ app.use(
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
+    secret: "secret",
+    store: sessionStore,
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
+      secure: false,
+      httpOnly: false,
+      sameSite: false,
+    },
   })
 );
-
-// passport.use(github);
-
-// passport.initialize();
-// passport.session();
-
-// passport.serializeUser(function (user, done) {
-//   done(null, user);
-// });
-
-// passport.deserializeUser(function (obj, done) {
-//   done(null, obj);
-// });
 
 app.get("/", (req, res) => {
   console.log("got to the endpoint");
@@ -66,6 +61,9 @@ const serverRun = () => {
 };
 
 async function main() {
+  console.log("This is going to print models: ", db.models);
+  await sessionStore.sync();
+  await db.sync();
   await serverRun();
 }
 

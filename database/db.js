@@ -1,14 +1,25 @@
-const mongoose = require('mongoose');
+const { Sequelize } = require("sequelize");
+const dotenv = require("dotenv").config();
+const pg = require("pg");
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+const db = new Sequelize(
+  "postgres://default:p7AQYBjzw6SJ@ep-blue-truth-89017417.us-east-1.postgres.vercel-storage.com:5432/verceldb",
+  {
+    logging: false,
+    dialectModule: pg,
+    dialectOptions: {
+      ssl: true,
+    },
+  }
+);
 
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB using Mongoose');
-});
+//Test Conection
+db.authenticate()
+  .then(() => {
+    console.log("DB connection works");
+  })
+  .catch((error) => {
+    console.error("DB connection failed:", error);
+  });
 
 module.exports = db;
