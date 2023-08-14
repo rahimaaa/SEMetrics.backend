@@ -23,9 +23,12 @@ module.exports = new GitHubStrategy(
           email: profile.emails[0].value,
           profilePhoto: profile._json.avatar_url,
           access_token: accessToken,
+          token_expiration: new Date().getTime() + (3600 * 1000)
         });
         return done(null, newUser);
       } else {
+        // User exists, so update the access_token
+        await user.update({ access_token: accessToken }); // Update the access_token attribute
         return done(null, user);
       }
     } catch (error) {
