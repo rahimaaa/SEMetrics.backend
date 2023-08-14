@@ -137,4 +137,88 @@ router.get("/impact/:repo_name", async (req, res, next) => {
   }
 });
 
+router.get("/:repo_name", async (req, res, next) => {
+  try {
+    const { repo_name } = req.params;
+    const { username, access_token } = req.user;
+
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repo_name}`;
+    const githubApiHeaders = {
+      Accept: "application/json",
+      Authorization: `Bearer ${access_token}`,
+    };
+
+    const response = await axios.get(githubApiUrl, {
+      headers: githubApiHeaders,
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching GitHub user data:", error);
+    res.status(500).json({ error: "Error fetching GitHub user data" });
+  }
+});
+
+router.get("/collabs/:repo_name", async (req, res, next) => {
+  try {
+    const { repo_name } = req.params;
+    const { username, Saccess_token } = req.user;
+
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repo_name}/collaborators`;
+    const githubApiHeaders = {
+      Accept: "application/json",
+      Authorization: `Bearer ${access_token}`,
+    };
+
+    const response = await axios.get(githubApiUrl, {
+      headers: githubApiHeaders,
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching GitHub user data:", error);
+    res.status(500).json({ error: "Error fetching GitHub user data" });
+  }
+});
+
+router.get("/new_work/:repo_name", async (req, res, next) => {
+  try {
+    const { repo_name } = req.params;
+    const { username, access_token } = req.user;
+
+    const commits = await getRepoCommits(username, repo_name, access_token);
+
+    const newWorkCommits = commits.filter(isCommitAddingNewCode);
+
+    const chartData = [
+      {
+        id: "New Work",
+        color: "hsl(25, 70%, 50%)", // Line color (you can set it as needed)
+        data: newWorkCommits.map((commit) => ({
+          x: new Intl.DateTimeFormat("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date(commit.commit.author.date)),
+          y: commit.stats.additions,
+        })),
+      },
+    ];
+
+    res.json(chartData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "An error occurred" });
+  }
+});
+
+const isCommitAddingNewCode = (commit) => {
+  const threshold = 10;
+
+  const additions = commit.stats.additions;
+  const deletions = commit.stats.deletions;
+
+  return additions > threshold && deletions < threshold;
+};
+
 module.exports = router;
