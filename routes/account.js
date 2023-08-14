@@ -18,25 +18,6 @@ passport.deserializeUser(function (obj, done) {
 
 router.get("/", ensureAuthenticated, accountController.user);
 
-router.get("/repos", ensureAuthenticated, async (req, res, next) => {
-  try {
-    const access_token = req.user.access_token;
-
-    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/user/repos`;
-    const githubApiHeaders = {
-      Accept: "application/json",
-      Authorization: `Bearer ${access_token}`,
-    };
-
-    const response = await axios.get(githubApiUrl, {
-      headers: githubApiHeaders,
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error("Error fetching GitHub user data:", error);
-    res.status(500).json({ error: "Error fetching GitHub user data" });
-  }
-});
+router.use("/repos", ensureAuthenticated, require("./repos"));
 
 module.exports = router;
