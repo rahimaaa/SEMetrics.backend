@@ -370,4 +370,28 @@ router.get("/pipeline/:repo_name", async (req, res, next) => {
   }
 });
 
+router.get("/releases/:repo_name", async (req, res, next) => {
+  try {
+    const { repo_name } = req.params;
+    const { username, access_token } = req.user;
+
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repo_name}/releases`;
+    const githubApiHeaders = {
+      Accept: "application/json",
+      Authorization: `Bearer ${access_token}`,
+    };
+
+    const response = await axios.get(githubApiUrl, {
+      headers: githubApiHeaders,
+    });
+    console.log("Releases: ", response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred getting deployments data" });
+  }
+});
+
 module.exports = router;
