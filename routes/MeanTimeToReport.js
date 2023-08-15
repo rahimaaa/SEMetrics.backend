@@ -1,7 +1,7 @@
 const axios = require("axios");
 const router = require("express").Router();
 
-app.get("/MeanTimeToReport/:repo_name", async (req, res, next) => {
+router.get("/MeanTimeToReport/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
     const { username, access_token } = req.user;
@@ -31,22 +31,7 @@ app.get("/MeanTimeToReport/:repo_name", async (req, res, next) => {
     const totalMTTR = mttrValues.reduce((sum, value) => sum + value, 0);
     const meanMTTR = totalMTTR / mttrValues.length;
 
-    const chartData = [
-      {
-        id: "MeanTimeToReport",
-        color: "hsl(25, 70%, 50%)",
-        data: meanMTTR.map((item) => ({
-          x: new Intl.DateTimeFormat("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(new Date(item.date)),
-          y: item.mttr,
-        })),
-      },
-    ];
-
-    res.json({ chartData });
+    res.json({ meanMTTR });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "An error occurred" });
