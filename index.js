@@ -7,6 +7,8 @@ const app = express();
 const db = require("./database/db");
 const authRouter = require("./routes/auth");
 const accountRouter = require("./routes/account");
+const mttrRouter = require("./routes/MeanTimeToReport");
+const reworkRouter = require("./routes/Rework");
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 
 const sessionStore = new SequelizeStore({ db });
@@ -52,6 +54,8 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/account", accountRouter);
+app.use("/MeanTimeToReport", mttrRouter);
+app.use("/Rework", reworkRouter);
 
 //Start Server
 const serverRun = () => {
