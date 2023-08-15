@@ -7,6 +7,7 @@ const app = express();
 const db = require("./database/db");
 const authRouter = require("./routes/auth");
 const accountRouter = require("./routes/account");
+const deploymentRouter = require("./routes/deployment"); 
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 
 const sessionStore = new SequelizeStore({ db });
@@ -52,6 +53,7 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/account", accountRouter);
+app.use("/deployment", deploymentRouter);
 
 //Start Server
 const serverRun = () => {
