@@ -10,7 +10,7 @@ const accountRouter = require("./routes/account");
 const mttrRouter = require("./routes/MeanTimeToReport");
 const reworkRouter = require("./routes/Rework");
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
-
+const passport = require("passport");
 const sessionStore = new SequelizeStore({ db });
 
 app.use(bodyParser.json());
@@ -47,6 +47,17 @@ app.use(
   })
 );
 
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function (user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function (obj, done) {
+  done(null, obj);
+});
+
 app.get("/", (req, res) => {
   console.log("got to the endpoint");
   res.send("Hey It's Working");
@@ -54,8 +65,8 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/account", accountRouter);
-app.use("/MeanTimeToReport", mttrRouter);
-app.use("/Rework", reworkRouter);
+app.use("/mttr", mttrRouter);
+app.use("/rework", reworkRouter);
 
 //Start Server
 const serverRun = () => {

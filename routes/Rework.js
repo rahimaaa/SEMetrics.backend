@@ -1,5 +1,6 @@
 const axios = require("axios");
 const router = require("express").Router();
+const ensureAuthenticated = require("../middleware/ensureAuthenticated");
 
 const getRepoCommits = async (ownerName, repoName, access_token) => {
   try {
@@ -53,24 +54,64 @@ const getASingleCommit = async (ownerName, repoName, commit, access_token) => {
   }
 };
 
-router.get("/rework-rate/:repo_name", async (req, res, next) => {
+router.get("/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
     const { username, access_token } = req.user;
 
     const commits = await getRepoCommits(username, repo_name, access_token);
 
-    const reworkCommits = commits.filter((commit) => {
-      return commit.stats.additions + commit.stats.deletions > changesThreshold;
-    });
+    const thresholdDays = 3; // 3 days for us will be considered a refactor
+    const thresholdTimestamp = Date.now() - thresholdDays * 24 * 60 * 60 * 1000;
 
-    const totalCommits = commits.length;
-    const reworkCommitCount = reworkCommits.length;
-    const reworkRate = (reworkCommitCount / totalCommits) * 100;
+    let reworkCommitCount = 0;
+    let totalCommits = 0;
 
-    res.json(reworkRate);
+    for (let i = 0; i < commits.length; i++) {
+      const commit = commits[i];
+      const commitTimestamp = new Date(commit.commit.author.date).getTime();
+
+      if (commitTimestamp < thresholdTimestamp) {
+        totalCommits++;
+
+        const filesChangedInCommit = commit.files.map((file) => file.filename);
+
+        for (let j = i + 1; j < commits.length; j++) {
+          const laterCommit = commits[j];
+          const laterCommitTimestamp = new Date(
+            laterCommit.commit.author.date
+          ).getTime();
+
+          if (
+            laterCommitTimestamp - commitTimestamp >
+            thresholdDays * 24 * 60 * 60 * 1000
+          ) {
+            break;
+          }
+
+          const filesChangedInLaterCommit = laterCommit.files.map(
+            (file) => file.filename
+          );
+
+          const commonFiles = filesChangedInCommit.filter((file) =>
+            filesChangedInLaterCommit.includes(file)
+          );
+
+          if (commonFiles.length > 0) {
+            reworkCommitCount++;
+            break;
+          }
+        }
+      }
+    }
+
+    const reworkPercentage = ((reworkCommitCount / totalCommits) * 100).toFixed(
+      2
+    );
+
+    res.json({ reworkPercentage: `${reworkPercentage}%` });
   } catch (error) {
-    console.error(error);
+    console.log(error);
     res.status(500).json({ error: "An error occurred" });
   }
 });
