@@ -60,7 +60,6 @@ const getASingleCommit = async (ownerName, repoName, commit, access_token) => {
 router.get("/", async (req, res, next) => {
   try {
     const access_token = req.user.access_token;
-
     const githubApiUrl = `${process.env.GITHUB_BASE_URL}/user/repos`;
     const githubApiHeaders = {
       Accept: "application/json",
@@ -72,6 +71,7 @@ router.get("/", async (req, res, next) => {
     });
 
     res.json(response.data);
+    
   } catch (error) {
     console.error("Error fetching GitHub user data:", error);
     res.status(500).json({ error: "Error fetching GitHub user data" });
@@ -209,6 +209,91 @@ router.get("/new_work/:repo_name", async (req, res, next) => {
     res.status(500).json({ error: "An error occurred" });
   }
 });
+
+const getRepoDeployments = async (username, repoName, access_token) => {
+  try {
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repoName}/deployments`;
+    const githubApiHeaders = {
+      Accept: "application/json",
+      Authorization: `Bearer ${access_token}`,
+    };
+
+    let response = await axios.get(githubApiUrl, {
+      headers: githubApiHeaders,
+    });
+
+    const deployments = response.data.map(deployment => ({
+      sha: deployment.sha,
+      date: deployment.created_at, // or deployment.updated_at depending on your use case
+    }));
+
+    return deployments;
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
+
+
+const calculateLeadTime = (commits, deployments) => {
+  const leadTimeData = [];
+
+  deployments.forEach((deployment) => {
+    const deploymentDate = new Date(deployment.date);
+    const commit = commits.find(commit => commit.sha === deployment.sha);
+
+    if (commit) {
+      const commitDate = new Date(commit.commit.author.date);
+      const leadTime = (deploymentDate - commitDate) / (1000 * 60 * 60); // in hours
+      
+      leadTimeData.push({
+        date: deploymentDate,
+        leadTime: leadTime
+      });
+
+      console.log('This is leadtime', leadTime);
+    }
+  });
+
+  leadTimeData.sort((a, b) => b.date - a.date);
+
+  return leadTimeData;
+};
+
+
+
+router.get("/lead_time/:repo_name", async (req, res, next) => {
+  try {
+    const { repo_name } = req.params;
+    const { username, access_token } = req.user;
+
+    const commits = await getRepoCommits(username, repo_name, access_token);
+    const deployments = await getRepoDeployments(username, repo_name, access_token);
+    
+    const leadTimeData = calculateLeadTime(commits, deployments);
+    
+    const chartData = [
+      {
+        id: "Lead Time",
+        color: "hsl(25, 70%, 50%)", // Line color (you can set it as needed)
+        data: leadTimeData.map((item) => ({
+          x: new Intl.DateTimeFormat("en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date(item.date)),
+          y: item.leadTime, // Using leadTime here instead of impact
+        })),
+      },
+    ];
+
+    res.json(chartData);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "An error occurred" });
+  }
+});
+
 
 const isCommitAddingNewCode = (commit) => {
   const threshold = 10;
