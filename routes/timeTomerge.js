@@ -57,4 +57,5 @@ router.get("/time-to-merge/:repo_name", async (req, res, next) => {
     res.status(500).json({ error: "An error occurred" });
   }
 });
+module.exports = router;
 
