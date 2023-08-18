@@ -1,6 +1,5 @@
 const axios = require("axios");
 const router = require("express").Router();
-const ensureAuthenticated = require("../middleware/ensureAuthenticated");
 
 const getRepoPullRequests = async (ownerName, repoName, access_token) => {
   try {
