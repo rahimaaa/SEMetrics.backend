@@ -2,7 +2,6 @@ const express = require("express");
 const passport = require("passport");
 const accountController = require("../controllers/account");
 const ensureAuthenticated = require("../middleware/ensureAuthenticated");
-const axios = require("axios");
 const router = express.Router();
 
 router.use(passport.initialize());
