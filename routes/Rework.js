@@ -1,6 +1,5 @@
 const axios = require("axios");
 const router = require("express").Router();
-const ensureAuthenticated = require("../middleware/ensureAuthenticated");
 
 const getRepoCommits = async (ownerName, repoName, access_token) => {
   try {
@@ -18,7 +17,7 @@ const getRepoCommits = async (ownerName, repoName, access_token) => {
 
     for (let i = 0; i < commits.length; i++) {
       const commit = commits[i];
-      const detailedCommit = await getASingleCommit(
+      const detailedCommit = await getSingleCommit(
         ownerName,
         repoName,
         commit,
@@ -36,7 +35,7 @@ const getRepoCommits = async (ownerName, repoName, access_token) => {
   }
 };
 
-const getASingleCommit = async (ownerName, repoName, commit, access_token) => {
+const getSingleCommit = async (ownerName, repoName, commit, access_token) => {
   try {
     const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${ownerName}/${repoName}/commits/${commit.sha}`;
     const githubApiHeaders = {
