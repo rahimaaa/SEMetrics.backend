@@ -60,7 +60,7 @@ const getASingleCommit = async (ownerName, repoName, commit, access_token) => {
 router.get("/", async (req, res, next) => {
   try {
     const { username, access_token } = req.user;
-    const githubApiUrl = `${process.env.GITHUB_BASE_URL}users/${username}/repos`;
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/users/${username}/repos`;
     const githubApiHeaders = {
       Accept: "application/json",
       Authorization: `Bearer ${access_token}`,
@@ -126,7 +126,6 @@ router.get("/impact/:repo_name", async (req, res, next) => {
         })),
       },
     ];
-
     res.json(chartData);
   } catch (error) {
     console.log(error);
@@ -156,11 +155,11 @@ router.get("/:repo_name", async (req, res, next) => {
   }
 });
 
+//this route doesnt work
 router.get("/collabs/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
     const { username, access_token } = req.user;
-
     const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repo_name}/collaborators`;
     const githubApiHeaders = {
       Accept: "application/json",
@@ -170,7 +169,6 @@ router.get("/collabs/:repo_name", async (req, res, next) => {
     const response = await axios.get(githubApiUrl, {
       headers: githubApiHeaders,
     });
-
     res.json(response.data);
   } catch (error) {
     console.error("Error fetching GitHub user data:", error);
@@ -442,6 +440,7 @@ const getActionRuns = async (ownerName, repoName, access_token) => {
     return null;
   }
 };
+
 router.get("/pipeline/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
