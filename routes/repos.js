@@ -1,5 +1,6 @@
 const axios = require("axios");
 const router = require("express").Router();
+router.use('./pullRequest', require('./pullRequest'));
 
 const getRepoCommits = async (ownerName, repoName, access_token) => {
   try {
