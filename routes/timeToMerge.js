@@ -20,7 +20,7 @@ const getRepoPullRequests = async (ownerName, repoName, access_token) => {
   }
 };
 
-router.get("/time-to-merge/:repo_name", async (req, res, next) => {
+router.get("/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
     const { username, access_token } = req.user;
@@ -57,4 +57,3 @@ router.get("/time-to-merge/:repo_name", async (req, res, next) => {
   }
 });
 module.exports = router;
-

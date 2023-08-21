@@ -1,5 +1,8 @@
 const router = require("express").Router();
 const axios = require("axios");
+const timeToMergeRouter = require("./timeToMerge");
+
+router.use("/time-to-merge", timeToMergeRouter);
 
 const getPullRequestList = async (owner, access_token, repo_name) => {
   try {
@@ -40,6 +43,28 @@ const getPullRequestComments = async (
   } catch (error) {
     console.error("Error fetching pull request comments:", error);
     return [];
+  }
+};
+
+const getPullRequestCommits = async (
+  username,
+  access_token,
+  repo_name,
+  pull_number
+) => {
+  const apiUrl = `https://api.github.com/repos/${username}/${repo_name}/pulls/${pull_number}/commits`;
+
+  try {
+    const response = await axios.get(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pull request commits:", error);
+    throw error;
   }
 };
 
@@ -348,6 +373,39 @@ router.get("/responsiveness/:repo_name", async (req, res, next) => {
     res.json({ barChartData: responseData });
   } catch (error) {
     console.error("Error calculating responsiveness:", error);
+    res.status(500).json({ error: "An error occurred" });
+  }
+});
+
+router.get("/follow-on-commits/:repo_name", async (req, res, next) => {
+  try {
+    const { repo_name } = req.params;
+    const { username, access_token } = req.user;
+
+    const pulls = await getPullRequestList(username, access_token, repo_name);
+
+    const responseData = [];
+
+    for (const pull of pulls) {
+      const commits = await getPullRequestCommits(
+        username,
+        access_token,
+        repo_name,
+        pull.number
+      );
+
+      const followOnCommitCount = commits.length - 1; // Exclude the initial commit
+
+      responseData.push({
+        PR: pull.number,
+        "follow-on Commit": followOnCommitCount,
+        "follow-on CommitColor": `hsl(${Math.random() * 120 + 200}, 70%, 50%)`,
+      });
+    }
+
+    res.json(responseData);
+  } catch (error) {
+    console.error("Error calculating follow-on commits:", error);
     res.status(500).json({ error: "An error occurred" });
   }
 });
