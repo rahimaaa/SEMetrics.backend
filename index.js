@@ -7,9 +7,6 @@ const app = express();
 const db = require("./database/db");
 const authRouter = require("./routes/auth");
 const accountRouter = require("./routes/account");
-const meanTimeToRestoreRouter = require("./routes/MeanTimeToRestore");
-const reworkRouter = require("./routes/Rework");
-const timeToMergeRouter = require("./routes/timeTomerge");
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 const passport = require("passport");
 const sessionStore = new SequelizeStore({ db });
@@ -66,9 +63,6 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/account", accountRouter);
-app.use("/mean-time-to-restore", meanTimeToRestoreRouter);
-app.use("/rework", reworkRouter);
-app.use("/time-to-merge", timeToMergeRouter);
 
 //Start Server
 const serverRun = () => {
