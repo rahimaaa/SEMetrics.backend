@@ -85,25 +85,44 @@ router.get("/", async (req, res, next) => {
 });
 
 const calculateImpact = (commits) => {
-  const impactData = [];
-
+  const impactDataMap = new Map(); // Use a Map to group data by date and calculate averages
   commits.forEach((commit) => {
     const { stats, files } = commit;
-
     const additions = stats.additions;
     const deletions = stats.deletions;
     const totalChanges = additions + deletions;
-
     const affectedFiles = files.map((file) => file.filename);
-
     const impact = totalChanges * affectedFiles.length * 0.1;
+    const commitDate = new Date(commit.commit.author.date);
+    const formattedDate = new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(commitDate);
 
-    impactData.push({
-      date: commit.commit.author.date,
-      impact: impact,
-      files: affectedFiles,
-    });
+    // Check if this date already exists in the Map
+    if (impactDataMap.has(formattedDate)) {
+      // If it exists, update the average impact
+      const existingData = impactDataMap.get(formattedDate);
+      existingData.totalImpact += impact;
+      existingData.count += 1;
+    } else {
+      // If it doesn't exist, create a new entry
+      impactDataMap.set(formattedDate, {
+        date: formattedDate,
+        totalImpact: impact,
+        count: 1,
+        files: affectedFiles,
+      });
+    }
   });
+
+  // Convert the Map values (averaged data) to an array
+  const impactData = Array.from(impactDataMap.values()).map((item) => ({
+    date: item.date,
+    impact: item.totalImpact / item.count, // Calculate the average impact
+    files: item.files,
+  }));
 
   impactData.sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -122,7 +141,7 @@ router.get("/impact/:repo_name", async (req, res, next) => {
     const chartData = [
       {
         id: "Impact",
-        color: "hsl(25, 70%, 50%)", // Line color (you can set it as needed)
+        color: "hsl(240, 70%, 50%)", // Line color (you can set it as needed)
         data: impactData.map((item) => ({
           x: new Intl.DateTimeFormat("en-US", {
             year: "numeric",
@@ -163,12 +182,12 @@ router.get("/:repo_name", async (req, res, next) => {
   }
 });
 
-router.get("/collabs/:repo_name", async (req, res, next) => {
+router.get("/contributors/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
     const { username, access_token } = req.user;
 
-    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repo_name}/collaborators`;
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/repos/${username}/${repo_name}/contributors`;
     const githubApiHeaders = {
       Accept: "application/json",
       Authorization: `Bearer ${access_token}`,
@@ -311,20 +330,31 @@ const isCommitAddingNewCode = (commit) => {
 };
 
 const calculateCommitComplexity = (commits) => {
-  const complexityData = commits.map((commit) => {
+  const complexityData = commits.reduce((acc, commit) => {
+    const commitDate = new Date(commit.commit.author.date)
+      .toISOString()
+      .split("T")[0];
     const totalChanges = commit.stats.additions + commit.stats.deletions;
     const filesChanged = commit.files.length;
     const commitComplexity = totalChanges * filesChanged;
 
-    return {
-      date: commit.commit.author.date,
-      complexity: commitComplexity,
-    };
-  });
+    if (!acc[commitDate]) {
+      acc[commitDate] = [];
+    }
 
-  complexityData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    acc[commitDate].push(commitComplexity);
 
-  return complexityData;
+    return acc;
+  }, {});
+
+  const chartData = Object.keys(complexityData).map((date) => ({
+    date,
+    complexity:
+      complexityData[date].reduce((a, b) => a + b, 0) /
+      complexityData[date].length,
+  }));
+
+  return chartData;
 };
 
 router.get("/complexity/:repo_name", async (req, res, next) => {
@@ -339,25 +369,96 @@ router.get("/complexity/:repo_name", async (req, res, next) => {
     const chartData = [
       {
         id: "Commit Complexity",
-        color: "hsl(25, 70%, 50%)",
-        data: complexityData.map((item) => ({
-          x: new Intl.DateTimeFormat("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(new Date(item.date)),
-          y: item.complexity,
-        })),
+        data: complexityData,
       },
     ];
 
-    res.json(chartData);
+    const keys = ["Commit Complexity"];
+    const fill = [
+      {
+        match: {
+          id: "Commit Complexity",
+        },
+        id: "dots",
+      },
+    ];
+
+    res.json({ chartData, keys, fill });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "An error occurred" });
   }
 });
 
+// router.get("/legacy-refactor/:repo_name", async (req, res, next) => {
+//   try {
+//     const { repo_name } = req.params;
+//     const { username, access_token } = req.user;
+
+//     const commits = await getRepoCommits(username, repo_name, access_token);
+
+//     const thresholdDays = 3; // 3 days for us will be consider refactor
+//     const thresholdTimestamp = Date.now() - thresholdDays * 24 * 60 * 60 * 1000;
+
+//     const legacyRefactorCommits = [];
+
+//     for (let i = 0; i < commits.length; i++) {
+//       const commit = commits[i];
+//       const commitTimestamp = new Date(commit.commit.author.date).getTime();
+
+//       if (commitTimestamp < thresholdTimestamp) {
+//         const filesChangedInCommit = commit.files.map((file) => file.filename);
+
+//         for (let j = i + 1; j < commits.length; j++) {
+//           const laterCommit = commits[j];
+//           const laterCommitTimestamp = new Date(
+//             laterCommit.commit.author.date
+//           ).getTime();
+
+//           if (
+//             laterCommitTimestamp - commitTimestamp >
+//             thresholdDays * 24 * 60 * 60 * 1000
+//           ) {
+//             break;
+//           }
+
+//           const filesChangedInLaterCommit = laterCommit.files.map(
+//             (file) => file.filename
+//           );
+
+//           const commonFiles = filesChangedInCommit.filter((file) =>
+//             filesChangedInLaterCommit.includes(file)
+//           );
+
+//           if (commonFiles.length > 0) {
+//             legacyRefactorCommits.push(commit);
+//             break;
+//           }
+//         }
+//       }
+//     }
+
+//     const chartData = [
+//       {
+//         id: "Legacy Refactor",
+//         color: "hsl(25, 70%, 50%)",
+//         data: legacyRefactorCommits.map((commit) => ({
+//           x: new Intl.DateTimeFormat("en-US", {
+//             year: "numeric",
+//             month: "2-digit",
+//             day: "2-digit",
+//           }).format(new Date(commit.commit.author.date)),
+//           y: commit.stats.additions - commit.stats.deletions,
+//         })),
+//       },
+//     ];
+
+//     res.json(chartData);
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ error: "An error occurred" });
+//   }
+// });
 router.get("/legacy-refactor/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
@@ -365,63 +466,57 @@ router.get("/legacy-refactor/:repo_name", async (req, res, next) => {
 
     const commits = await getRepoCommits(username, repo_name, access_token);
 
-    const thresholdDays = 3; // 3 days for us will be consider refactor
+    const thresholdDays = 3; // 3 days for us will be considered refactor
     const thresholdTimestamp = Date.now() - thresholdDays * 24 * 60 * 60 * 1000;
 
-    const legacyRefactorCommits = [];
+    let refactorCount = 0;
+    let notRefactorCount = 0;
 
-    for (let i = 0; i < commits.length; i++) {
-      const commit = commits[i];
+    for (const commit of commits) {
       const commitTimestamp = new Date(commit.commit.author.date).getTime();
 
       if (commitTimestamp < thresholdTimestamp) {
-        const filesChangedInCommit = commit.files.map((file) => file.filename);
+        const impact = commit.stats.additions - commit.stats.deletions;
 
-        for (let j = i + 1; j < commits.length; j++) {
-          const laterCommit = commits[j];
-          const laterCommitTimestamp = new Date(
-            laterCommit.commit.author.date
-          ).getTime();
-
-          if (
-            laterCommitTimestamp - commitTimestamp >
-            thresholdDays * 24 * 60 * 60 * 1000
-          ) {
-            break;
-          }
-
-          const filesChangedInLaterCommit = laterCommit.files.map(
-            (file) => file.filename
-          );
-
-          const commonFiles = filesChangedInCommit.filter((file) =>
-            filesChangedInLaterCommit.includes(file)
-          );
-
-          if (commonFiles.length > 0) {
-            legacyRefactorCommits.push(commit);
-            break;
-          }
+        if (impact > 0) {
+          refactorCount += 1;
+        } else {
+          notRefactorCount += 1;
         }
       }
     }
 
     const chartData = [
       {
-        id: "Legacy Refactor",
-        color: "hsl(25, 70%, 50%)",
-        data: legacyRefactorCommits.map((commit) => ({
-          x: new Intl.DateTimeFormat("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(new Date(commit.commit.author.date)),
-          y: commit.stats.additions - commit.stats.deletions,
-        })),
+        id: "commits affecting code",
+        label: "commits affecting code",
+        value: refactorCount,
+        color: "hsl(207, 70%, 50%)",
+      },
+      {
+        id: "commits not affecting code",
+        label: "commits not affecting code",
+        value: notRefactorCount,
+        color: "hsl(228, 70%, 50%)",
       },
     ];
 
-    res.json(chartData);
+    const fill = [
+      {
+        match: {
+          id: "commits affecting code",
+        },
+        id: "dots",
+      },
+      {
+        match: {
+          id: "commits not affecting code",
+        },
+        id: "lines",
+      },
+    ];
+
+    res.json({ chartData: chartData, fill: fill });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "An error occurred" });
@@ -505,6 +600,49 @@ const getDeployments = async (ownerName, repoName, access_token) => {
 };
 
 // Helper function to calculate the deployment frequency.
+// const calculateDeploymentFrequency = (deployments) => {
+//   if (!deployments || !deployments.length) {
+//     return { averageFrequency: 0, graphData: [] };
+//   }
+
+//   const earliestDeploymentDate = new Date(
+//     deployments[deployments.length - 1].created_at
+//   );
+//   const daysSinceFirstDeployment =
+//     (new Date() - earliestDeploymentDate) / (1000 * 60 * 60 * 24);
+//   const averageFrequency = deployments.length / daysSinceFirstDeployment;
+
+//   const data = {
+//     id: "frequency",
+//     color:
+//       averageFrequency > 0.5
+//         ? "green"
+//         : averageFrequency > 0.3
+//         ? "blue"
+//         : averageFrequency > 0.1
+//         ? "yellow"
+//         : "red",
+//     data: Array.from(
+//       { length: Math.ceil(daysSinceFirstDeployment) },
+//       (_, idx) => {
+//         return {
+//           x: new Date(
+//             earliestDeploymentDate.getTime() + idx * 24 * 60 * 60 * 1000
+//           )
+//             .toISOString()
+//             .split("T")[0],
+//           y: idx + 1,
+//         };
+//       }
+//     ),
+//   };
+
+//   return {
+//     averageFrequency,
+//     graphData: [data],
+//   };
+// };
+
 const calculateDeploymentFrequency = (deployments) => {
   if (!deployments || !deployments.length) {
     return { averageFrequency: 0, graphData: [] };
@@ -513,38 +651,52 @@ const calculateDeploymentFrequency = (deployments) => {
   const earliestDeploymentDate = new Date(
     deployments[deployments.length - 1].created_at
   );
+  const currentDate = new Date();
   const daysSinceFirstDeployment =
-    (new Date() - earliestDeploymentDate) / (1000 * 60 * 60 * 24);
+    (currentDate - earliestDeploymentDate) / (1000 * 60 * 60 * 24);
+
+  // Create an object to store the daily deployment counts
+  const deploymentCounts = {};
+
+  // Iterate through deployments and count them per day
+  deployments.forEach((deployment) => {
+    const deploymentDate = new Date(deployment.created_at)
+      .toISOString()
+      .split("T")[0];
+
+    if (deploymentCounts[deploymentDate]) {
+      deploymentCounts[deploymentDate]++;
+    } else {
+      deploymentCounts[deploymentDate] = 1;
+    }
+  });
+
+  // Convert the counts into data points for the chart
+  const data = Object.entries(deploymentCounts).map(([date, count]) => ({
+    x: date,
+    y: count,
+  }));
+
   const averageFrequency = deployments.length / daysSinceFirstDeployment;
 
-  const data = {
-    id: "frequency",
-    color:
-      averageFrequency > 0.5
-        ? "green"
-        : averageFrequency > 0.3
-        ? "blue"
-        : averageFrequency > 0.1
-        ? "yellow"
-        : "red",
-    data: Array.from(
-      { length: Math.ceil(daysSinceFirstDeployment) },
-      (_, idx) => {
-        return {
-          x: new Date(
-            earliestDeploymentDate.getTime() + idx * 24 * 60 * 60 * 1000
-          )
-            .toISOString()
-            .split("T")[0],
-          y: idx + 1,
-        };
-      }
-    ),
-  };
+  const graphData = [
+    {
+      id: "frequency",
+      color:
+        averageFrequency > 0.5
+          ? "green"
+          : averageFrequency > 0.3
+          ? "blue"
+          : averageFrequency > 0.1
+          ? "yellow"
+          : "red",
+      data,
+    },
+  ];
 
   return {
     averageFrequency,
-    graphData: [data],
+    graphData,
   };
 };
 
