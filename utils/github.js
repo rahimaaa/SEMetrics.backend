@@ -6,7 +6,7 @@ module.exports = new GitHubStrategy(
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
     callbackURL: process.env.GITHUB_CALLBACK_URL,
-    scope: ["user:email", "read:user", "repo"],
+    scope: ["user:email", "read:user", "repo", "read:org"],
   },
   async function (accessToken, refreshToken, profile, done) {
     console.log("in GitHub strategy");
@@ -23,7 +23,7 @@ module.exports = new GitHubStrategy(
           email: profile.emails[0].value,
           profilePhoto: profile._json.avatar_url,
           access_token: accessToken,
-          token_expiration: new Date().getTime() + (3600 * 1000)
+          token_expiration: new Date().getTime() + 3600 * 1000,
         });
         return done(null, newUser);
       } else {
