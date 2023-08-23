@@ -330,31 +330,43 @@ const isCommitAddingNewCode = (commit) => {
 };
 
 const calculateCommitComplexity = (commits) => {
-  const complexityData = commits.reduce((acc, commit) => {
-    const commitDate = new Date(commit.commit.author.date)
-      .toISOString()
-      .split("T")[0];
+  const data = commits.map((commit) => {
     const totalChanges = commit.stats.additions + commit.stats.deletions;
     const filesChanged = commit.files.length;
     const commitComplexity = totalChanges * filesChanged;
 
-    if (!acc[commitDate]) {
-      acc[commitDate] = [];
-    }
+    // Determine the color based on commit complexity
+    const color = getComplexityColor(commitComplexity);
 
-    acc[commitDate].push(commitComplexity);
+    // Shorten the commit identifier
+    const commitIdentifier = commit.sha.substring(0, 7);
 
-    return acc;
-  }, {});
+    return {
+      commit: commitIdentifier,
+      [`${commitIdentifier}`]: commitComplexity,
+      [`${commitIdentifier}Color`]: color,
+    };
+  });
 
-  const chartData = Object.keys(complexityData).map((date) => ({
-    date,
-    complexity:
-      complexityData[date].reduce((a, b) => a + b, 0) /
-      complexityData[date].length,
-  }));
+  return data;
+};
 
-  return chartData;
+const getComplexityColor = (complexity) => {
+  // Define thresholds for different complexity levels
+  const eliteThreshold = 500;
+  const goodThreshold = 300;
+  const mediumRiskThreshold = 100;
+
+  // Determine the color based on complexity
+  if (complexity >= eliteThreshold) {
+    return "hsl(125, 70%, 50%)"; // Elite (Green)
+  } else if (complexity >= goodThreshold) {
+    return "hsl(270, 70%, 50%)"; // Good (Blue)
+  } else if (complexity >= mediumRiskThreshold) {
+    return "hsl(45, 70%, 50%)"; // Medium Risk (Yellow)
+  } else {
+    return "hsl(0, 70%, 50%)"; // High Risk (Red)
+  }
 };
 
 router.get("/complexity/:repo_name", async (req, res, next) => {
@@ -364,101 +376,16 @@ router.get("/complexity/:repo_name", async (req, res, next) => {
 
     const commits = await getRepoCommits(username, repo_name, access_token);
 
-    const complexityData = calculateCommitComplexity(commits);
+    const chartData = calculateCommitComplexity(commits);
+    const keys = commits.map((commit) => commit.sha.substring(0, 7));
 
-    const chartData = [
-      {
-        id: "Commit Complexity",
-        data: complexityData,
-      },
-    ];
-
-    const keys = ["Commit Complexity"];
-    const fill = [
-      {
-        match: {
-          id: "Commit Complexity",
-        },
-        id: "dots",
-      },
-    ];
-
-    res.json({ chartData, keys, fill });
+    res.json({ chartData: chartData, keys: keys });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "An error occurred" });
   }
 });
 
-// router.get("/legacy-refactor/:repo_name", async (req, res, next) => {
-//   try {
-//     const { repo_name } = req.params;
-//     const { username, access_token } = req.user;
-
-//     const commits = await getRepoCommits(username, repo_name, access_token);
-
-//     const thresholdDays = 3; // 3 days for us will be consider refactor
-//     const thresholdTimestamp = Date.now() - thresholdDays * 24 * 60 * 60 * 1000;
-
-//     const legacyRefactorCommits = [];
-
-//     for (let i = 0; i < commits.length; i++) {
-//       const commit = commits[i];
-//       const commitTimestamp = new Date(commit.commit.author.date).getTime();
-
-//       if (commitTimestamp < thresholdTimestamp) {
-//         const filesChangedInCommit = commit.files.map((file) => file.filename);
-
-//         for (let j = i + 1; j < commits.length; j++) {
-//           const laterCommit = commits[j];
-//           const laterCommitTimestamp = new Date(
-//             laterCommit.commit.author.date
-//           ).getTime();
-
-//           if (
-//             laterCommitTimestamp - commitTimestamp >
-//             thresholdDays * 24 * 60 * 60 * 1000
-//           ) {
-//             break;
-//           }
-
-//           const filesChangedInLaterCommit = laterCommit.files.map(
-//             (file) => file.filename
-//           );
-
-//           const commonFiles = filesChangedInCommit.filter((file) =>
-//             filesChangedInLaterCommit.includes(file)
-//           );
-
-//           if (commonFiles.length > 0) {
-//             legacyRefactorCommits.push(commit);
-//             break;
-//           }
-//         }
-//       }
-//     }
-
-//     const chartData = [
-//       {
-//         id: "Legacy Refactor",
-//         color: "hsl(25, 70%, 50%)",
-//         data: legacyRefactorCommits.map((commit) => ({
-//           x: new Intl.DateTimeFormat("en-US", {
-//             year: "numeric",
-//             month: "2-digit",
-//             day: "2-digit",
-//           }).format(new Date(commit.commit.author.date)),
-//           y: commit.stats.additions - commit.stats.deletions,
-//         })),
-//       },
-//     ];
-
-//     res.json(chartData);
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ error: "An error occurred" });
-//   }
-// });
 router.get("/legacy-refactor/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
@@ -600,48 +527,6 @@ const getDeployments = async (ownerName, repoName, access_token) => {
 };
 
 // Helper function to calculate the deployment frequency.
-// const calculateDeploymentFrequency = (deployments) => {
-//   if (!deployments || !deployments.length) {
-//     return { averageFrequency: 0, graphData: [] };
-//   }
-
-//   const earliestDeploymentDate = new Date(
-//     deployments[deployments.length - 1].created_at
-//   );
-//   const daysSinceFirstDeployment =
-//     (new Date() - earliestDeploymentDate) / (1000 * 60 * 60 * 24);
-//   const averageFrequency = deployments.length / daysSinceFirstDeployment;
-
-//   const data = {
-//     id: "frequency",
-//     color:
-//       averageFrequency > 0.5
-//         ? "green"
-//         : averageFrequency > 0.3
-//         ? "blue"
-//         : averageFrequency > 0.1
-//         ? "yellow"
-//         : "red",
-//     data: Array.from(
-//       { length: Math.ceil(daysSinceFirstDeployment) },
-//       (_, idx) => {
-//         return {
-//           x: new Date(
-//             earliestDeploymentDate.getTime() + idx * 24 * 60 * 60 * 1000
-//           )
-//             .toISOString()
-//             .split("T")[0],
-//           y: idx + 1,
-//         };
-//       }
-//     ),
-//   };
-
-//   return {
-//     averageFrequency,
-//     graphData: [data],
-//   };
-// };
 
 const calculateDeploymentFrequency = (deployments) => {
   if (!deployments || !deployments.length) {
