@@ -60,7 +60,7 @@ const getASingleCommit = async (ownerName, repoName, commit, access_token) => {
 router.get("/", async (req, res, next) => {
   try {
     const { username, access_token } = req.user;
-    const githubApiUrl = `${process.env.GITHUB_BASE_URL}users/${username}/repos`;
+    const githubApiUrl = `${process.env.GITHUB_BASE_URL}/users/${username}/repos`;
     const githubApiHeaders = {
       Accept: "application/json",
       Authorization: `Bearer ${access_token}`,
