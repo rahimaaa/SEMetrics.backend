@@ -353,19 +353,19 @@ const calculateCommitComplexity = (commits) => {
 
 const getComplexityColor = (complexity) => {
   // Define thresholds for different complexity levels
-  const eliteThreshold = 500;
-  const goodThreshold = 300;
-  const mediumRiskThreshold = 100;
+  const goodThreshold = 100;
+  const mediumRiskThreshold = 300;
+  const higthRiskTheshold = 500;
 
   // Determine the color based on complexity
-  if (complexity >= eliteThreshold) {
-    return "hsl(125, 70%, 50%)"; // Elite (Green)
-  } else if (complexity >= goodThreshold) {
-    return "hsl(270, 70%, 50%)"; // Good (Blue)
+  if (complexity >= higthRiskTheshold) {
+    return "hsl(0, 70%, 50%)"; // High Risk (Red)
   } else if (complexity >= mediumRiskThreshold) {
     return "hsl(45, 70%, 50%)"; // Medium Risk (Yellow)
+  } else if (complexity >= goodThreshold) {
+    return "hsl(270, 70%, 50%)"; // Good (Blue)
   } else {
-    return "hsl(0, 70%, 50%)"; // High Risk (Red)
+    return "hsl(125, 70%, 50%)"; // Elite (Green)
   }
 };
 

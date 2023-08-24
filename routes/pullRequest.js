@@ -377,37 +377,100 @@ router.get("/responsiveness/:repo_name", async (req, res, next) => {
   }
 });
 
+const calculateFollowOnCommitColor = (followOnCommitCount) => {
+  if (followOnCommitCount >= 10) {
+    return "hsl(0, 70%, 50%)"; // High Risk (Red)
+  } else if (followOnCommitCount >= 5) {
+    return "hsl(45, 70%, 50%)"; // Medium Risk (Yellow)
+  } else if (followOnCommitCount >= 3) {
+    return "hsl(270, 70%, 50%)"; // Good (Blue)
+  } else {
+    return "hsl(125, 70%, 50%)"; // Elite (Green)
+  }
+};
+
+// Function to calculate Follow-On Commits data and format it for the bar chart
+const calculateFollowOnCommitsData = async (
+  username,
+  access_token,
+  repo_name
+) => {
+  const pulls = await getPullRequestList(username, access_token, repo_name);
+  const chartData = [];
+  const keys = [];
+  for (const pull of pulls) {
+    const commits = await getPullRequestCommits(
+      username,
+      access_token,
+      repo_name,
+      pull.number
+    );
+
+    const followOnCommitCount = commits.length; // Exclude the initial commit
+
+    // Determine the color based on the number of follow-on commits
+    const color = calculateFollowOnCommitColor(followOnCommitCount);
+
+    chartData.push({
+      PR: `PR #${pull.number}`,
+      [`${commits[0].sha.substring(0, 7)}`]: followOnCommitCount,
+      [`${commits[0].sha.substring(0, 7)}Color`]: color,
+    });
+    keys.push(`${commits[0].sha.substring(0, 7)}`);
+  }
+
+  return { chartData, keys };
+};
+
 router.get("/follow-on-commits/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
     const { username, access_token } = req.user;
 
-    const pulls = await getPullRequestList(username, access_token, repo_name);
+    const responseData = await calculateFollowOnCommitsData(
+      username,
+      access_token,
+      repo_name
+    );
 
-    const responseData = [];
-
-    for (const pull of pulls) {
-      const commits = await getPullRequestCommits(
-        username,
-        access_token,
-        repo_name,
-        pull.number
-      );
-
-      const followOnCommitCount = commits.length - 1; // Exclude the initial commit
-
-      responseData.push({
-        PR: pull.number,
-        "follow-on Commit": followOnCommitCount,
-        "follow-on CommitColor": `hsl(${Math.random() * 120 + 200}, 70%, 50%)`,
-      });
-    }
-
-    res.json(responseData);
+    res.json({ chartData: responseData.chartData, keys: responseData.keys });
   } catch (error) {
     console.error("Error calculating follow-on commits:", error);
     res.status(500).json({ error: "An error occurred" });
   }
 });
+
+// router.get("/follow-on-commits/:repo_name", async (req, res, next) => {
+//   try {
+//     const { repo_name } = req.params;
+//     const { username, access_token } = req.user;
+
+//     const pulls = await getPullRequestList(username, access_token, repo_name);
+
+//     const responseData = [];
+
+//     for (const pull of pulls) {
+//       const commits = await getPullRequestCommits(
+//         username,
+//         access_token,
+//         repo_name,
+//         pull.number
+//       );
+
+//       const followOnCommitCount = commits.length - 1; // Exclude the initial commit
+
+//       responseData.push({
+//         PR: pull.number,
+//         "follow-on Commit": followOnCommitCount,
+//         "follow-on CommitColor": `hsl(${Math.random() * 120 + 200}, 70%, 50%)`,
+//       });
+//     }
+
+//     res.json(responseData);
+//   } catch (error) {
+//     console.error("Error calculating follow-on commits:", error);
+//     res.status(500).json({ error: "An error occurred" });
+//   }
+// });
 
 module.exports = router;
