@@ -344,6 +344,27 @@ function calculateAverageResponseTime(comments) {
   return totalResponseTime / comments.length;
 }
 
+function getColor(avgResponseTime) {
+  // Define thresholds for different categories
+  const excellentThreshold = 24 * 3600 * 1000; // 24 hours in milliseconds
+  const goodThreshold = 48 * 3600 * 1000; // 48 hours in milliseconds
+  const mediumRiskThreshold = 72 * 3600 * 1000; // 72 hours in milliseconds
+
+  if (avgResponseTime <= excellentThreshold) {
+    return "hsl(125, 70%, 50%)"; // Excellent (Green)
+  } else if (avgResponseTime <= goodThreshold) {
+    return "hsl(270, 70%, 50%)"; // Good (Blue)
+  } else if (avgResponseTime <= mediumRiskThreshold) {
+    return "hsl(45, 70%, 50%)"; // Medium Risk (Yellow)
+  } else {
+    return "hsl(0, 70%, 50%)"; // High Risk (Red)
+  }
+}
+function formatResponseTime(avgResponseTime) {
+  const hours = Math.floor(avgResponseTime / 3600); // 3600 seconds in an hour
+  const minutes = Math.floor((avgResponseTime % 3600) / 60); // Remaining seconds converted to minutes
+  return `${hours}.${minutes}`;
+}
 router.get("/responsiveness/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
@@ -352,6 +373,7 @@ router.get("/responsiveness/:repo_name", async (req, res, next) => {
     const pulls = await getPullRequestList(username, access_token, repo_name);
 
     const responseData = [];
+    const keys = [];
 
     for (const pull of pulls) {
       const comments = await getPullRequestComments(
@@ -362,15 +384,27 @@ router.get("/responsiveness/:repo_name", async (req, res, next) => {
       );
 
       const avgResponseTime = calculateAverageResponseTime(comments);
+      const formattedAvgResponseTime = formatResponseTime(avgResponseTime);
 
       responseData.push({
-        PR: pull.number,
-        responsiveness: avgResponseTime,
-        responsivenessColor: `hsl(${Math.random() * 120 + 200}, 70%, 50%)`,
+        PR: `PR #${pull.number}`,
+        [`#${pull.number}`]: formattedAvgResponseTime,
+        [`#${pull.number}Color`]: getColor(avgResponseTime),
       });
+      keys.push(`#${pull.number}`);
     }
 
-    res.json({ barChartData: responseData });
+    //   chartData.push({
+    //     PR: `PR #${pull.number}`,
+    //     [`${commits[0].sha.substring(0, 7)}`]: followOnCommitCount,
+    //     [`${commits[0].sha.substring(0, 7)}Color`]: color,
+    //   });
+    //   keys.push(`${commits[0].sha.substring(0, 7)}`);
+    // }
+
+    // return { chartData, keys };
+
+    res.json({ chartData: responseData, keys: keys });
   } catch (error) {
     console.error("Error calculating responsiveness:", error);
     res.status(500).json({ error: "An error occurred" });
