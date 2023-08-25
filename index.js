@@ -19,7 +19,6 @@ app.enable("trust proxy");
 app.use(
   cors({
     origin: [
-     
       process.env.FRONTEND_URL || "http://localhost:3000",
       process.env.GITHUB_CALLBACK_URL,
     ],
@@ -34,8 +33,8 @@ app.use(
   session({
     secret: "secret",
     store: sessionStore,
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
       secure: true,
