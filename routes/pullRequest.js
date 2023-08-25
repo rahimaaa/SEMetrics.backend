@@ -172,7 +172,7 @@ router.get("/iteration-time/:repo_name", async (req, res, next) => {
     const chartData = [
       {
         id: "Iteration Time",
-        color: "hsl(25, 70%, 50%)",
+        color: getColor(averageIterationTime),
         data: await Promise.all(
           pulls.map(async (pull) => ({
             x: new Intl.DateTimeFormat("en-US", {
