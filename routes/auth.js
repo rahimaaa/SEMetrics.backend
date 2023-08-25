@@ -27,7 +27,7 @@ router.get(
   passport.authenticate("github", { failureRedirect: "/login" }),
   function (req, res) {
     // Successful authentication, redirect home.
-    res.redirect("https://git-pulse-frontend.vercel.app/dashboard");
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   }
 );
 
