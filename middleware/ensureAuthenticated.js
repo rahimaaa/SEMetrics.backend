@@ -3,6 +3,7 @@ function ensureAuthenticated(req, res, next) {
     return next();
   } else {
     console.log("Unauthorized");
+    res.status(401).json({ error: 'Unauthorized' });
   }
 }
 
