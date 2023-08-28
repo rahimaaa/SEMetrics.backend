@@ -14,13 +14,13 @@ const sessionStore = new SequelizeStore({ db });
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.enable("trust proxy");
 
 app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL || "http://localhost:3000",
       process.env.GITHUB_CALLBACK_URL,
+      process.env.BACKEND_URL
     ],
     credentials: true,
     allowedHeaders:
@@ -28,6 +28,7 @@ app.use(
     preflightContinue: true,
   })
 );
+app.set("trust proxy",1);
 //Local Setup - For developemnt porpuse
 // app.use(
 //   session({
@@ -49,15 +50,16 @@ app.use(
 
 app.use(
   session({
-    secret: "secret",
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
-    resave: true,
+    resave: false,
     saveUninitialized: true,
+    proxy: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
+      httpOnly: false,
       secure: true,
-      httpOnly: true,
-      sameSite: "lax",
+      sameSite: "none"
     },
   })
 );
