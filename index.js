@@ -49,14 +49,14 @@ app.use(
 
 app.use(
   session({
-    secret: "secret",
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: true,
     saveUninitialized: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
       httpOnly: false,
-      sameSite: "lax",
+      sameSite: "none",
       domain: ".gitpulse.vercel.app",
       secure: true
     },
