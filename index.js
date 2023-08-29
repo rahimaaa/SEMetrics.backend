@@ -13,23 +13,21 @@ const sessionStore = new SequelizeStore({ db });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://git-pulse-frontend.vercel.app'); // Replace with your frontend domain
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  next();
-});
 
+app.enable("trust proxy");
 
 app.use(
   cors({
-    origin: 'https://git-pulse-frontend.vercel.app',
+    origin: [
+      process.env.FRONTEND_URL || "http://localhost:3000",
+      process.env.GITHUB_CALLBACK_URL,
+    ],
     credentials: true,
     allowedHeaders:
       "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
     preflightContinue: true,
   })
 );
-app.set("trust proxy",1);
 //Local Setup - For developemnt porpuse
 // app.use(
 //   session({
@@ -51,15 +49,14 @@ app.set("trust proxy",1);
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: "secret",
     store: sessionStore,
-    resave: false,
+    resave: true,
     saveUninitialized: true,
-    proxy: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
-      httpOnly: true,
       secure: true,
+      httpOnly: false,
       sameSite: "none",
     },
   })
