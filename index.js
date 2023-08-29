@@ -13,11 +13,16 @@ const sessionStore = new SequelizeStore({ db });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://git-pulse-frontend.vercel.app'); // Replace with your frontend domain
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: 'https://git-pulse-frontend.vercel.app',
     credentials: true,
     allowedHeaders:
       "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
@@ -56,7 +61,6 @@ app.use(
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      path: '/acccount/'
     },
   })
 );
