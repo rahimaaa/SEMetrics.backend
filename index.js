@@ -59,7 +59,7 @@ app.use(
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      domain: 'https://git-pulse-frontend.vercel.app'
+      domain: 'https://git-pulse-frontend.vercel.app/dashboard'
     },
   })
 );
