@@ -58,6 +58,7 @@ app.use(
       secure: true,
       httpOnly: false,
       sameSite: "none",
+      domain: ".gitpulse.vercel.app"
     },
   })
 );
