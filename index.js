@@ -52,7 +52,6 @@ app.use(
     saveUninitialized: true,
     proxy: true,
     cookie: {
-      domain:'se-metrics-backend-df2y.vercel.app',
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
       httpOnly: true,
       secure: true,
