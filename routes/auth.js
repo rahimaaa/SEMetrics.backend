@@ -26,7 +26,16 @@ router.get(
   "/github/callback",
   passport.authenticate("github", { failureRedirect: "/login" }),
   function (req, res) {
-    // Successful authentication, redirect home.
+    // Successful authentication, set the cookie here
+    res.cookie('connect.sid', req.cookies, {
+      maxAge: 900000, // Cookie expiry time
+      httpOnly: true, // Flag to make cookie not accessible via JavaScript
+      secure: true, // Flag to make cookie only work over HTTPS
+      sameSite: 'none', // SameSite attribute for cookie
+      domain: 'your-domain.com' // Domain where the cookie is valid
+    });
+
+    // Redirect to the dashboard
     res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   }
 );
