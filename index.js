@@ -18,10 +18,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: [
-      `${process.env.FRONTEND_URL}/dashboard` || "http://localhost:3000",
+      process.env.FRONTEND_URL || "http://localhost:3000",
       process.env.GITHUB_CALLBACK_URL,
-      `${process.env.BACKEND_URL}/account/`,
-      `${process.env.BACKEND_URL}/account/repos/`
     ],
     credentials: true,
     allowedHeaders:
