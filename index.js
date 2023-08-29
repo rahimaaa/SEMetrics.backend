@@ -55,10 +55,10 @@ app.use(
     saveUninitialized: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
-      secure: true,
       httpOnly: false,
       sameSite: "none",
-      domain: ".gitpulse.vercel.app"
+      domain: ".gitpulse.vercel.app",
+      secure: 'auto'
     },
   })
 );
