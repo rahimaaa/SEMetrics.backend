@@ -17,10 +17,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      process.env.GITHUB_CALLBACK_URL,
-    ],
+    origin: process.env.FRONTEND_URL,
     credentials: true,
     allowedHeaders:
       "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
@@ -52,14 +49,13 @@ app.use(
     secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     proxy: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      domain: 'https://git-pulse-frontend.vercel.app/dashboard'
     },
   })
 );
