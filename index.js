@@ -57,7 +57,7 @@ app.use(
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
       httpOnly: false,
       sameSite: "none",
-      domain: "frontend.gitpulse.vercel.app",
+      domain: ".gitpulse.vercel.app",
       secure: 'auto'
     },
   })
