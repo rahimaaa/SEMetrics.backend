@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const axios = require("axios");
+const { fail } = require("../utils/github");
 
 async function getAllDeployments(username, repo_name, access_token) {
   const deployments = [];
@@ -92,10 +93,43 @@ router.get("/:repo_name", async (req, res) => {
       allDeployments
     );
 
-    const cfr = (failedDeployments.length / totalDeployments).toFixed(2);
-    console.log("CFR:", cfr);
+    const totalFailedDeployment = failedDeployments.length
 
-    res.json({ totalDeployments, failedDeployments, cfr }); // Send CFR as JSON response
+    const cfr = ( totalFailedDeployment / totalDeployments).toFixed(2);
+    const successfulDeployment = totalDeployments- totalFailedDeployment;
+
+    const chartData = [
+      {
+        id: "total failed deployment",
+        label: "total failed deployment",
+        value: totalFailedDeployment,
+        color: "hsl(207, 70%, 50%)",
+      },
+      {
+        id: "total successful deployment",
+        label: "total successful deployment",
+        value: successfulDeployment,
+        color: "hsl(228, 70%, 50%)",
+      },
+    ];
+
+    const fill = [
+      {
+        match: {
+          id: "total failed feployment",
+        },
+        id: "dots",
+      },
+      {
+        match: {
+          id: "total successful deployment",
+        },
+        id: "lines",
+      },
+    ];
+
+
+    res.json({ cfr , chartData: chartData, fill: fill }); // Send CFR as JSON response
   } catch (error) {
     console.log("Error fetching data from Github API:", error);
     res.status(500).json({ error: "An error occurred" });
