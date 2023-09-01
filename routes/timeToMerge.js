@@ -62,7 +62,10 @@ router.get("/:repo_name", async (req, res, next) => {
     // Format chart data
     const chartData = mergedPullRequests.map((pr) => ({
       x: pr.number, // Assuming PR number as x
-      y: (new Date(pr.merged_at) - new Date(pr.created_at)) / (1000 * 60 * 60), // Time to merge in hours
+      y: (
+        (new Date(pr.merged_at) - new Date(pr.created_at)) /
+        (1000 * 60 * 60)
+      ).toFixed(3), // Time to merge in hours
     }));
 
     const chartDataFormatted = [
