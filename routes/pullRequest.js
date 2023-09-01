@@ -81,6 +81,29 @@ router.get("/:repo_name", async (req, res, next) => {
   }
 });
 
+// Function to calculate line color based on average time
+function calculateLineColor(chartData) {
+  const thresholdElite = 5; // Adjust this threshold as needed
+  const thresholdGood = 10; // Adjust this threshold as needed
+
+  const averageTimeInMinutes = chartData.reduce(
+    (acc, dataPoint) => acc + dataPoint.y,
+    0
+  );
+
+  const averageTime = averageTimeInMinutes / chartData.length;
+
+  if (averageTime <= thresholdElite) {
+    return "hsl(162, 100%, 41%)"; // Elite Metric Color
+  } else if (averageTime <= thresholdGood) {
+    return "hsl(202, 100%, 50%)"; // Good Metric Color
+  } else if (averageTime <= 20) {
+    return "hsl(280, 85%, 36%)"; // Medium Risk Color
+  } else {
+    return "hsl(352, 89%, 19%)"; // High Risk Color
+  }
+}
+
 router.get("/time_first_comment/:repo_name", async (req, res, next) => {
   try {
     const { repo_name } = req.params;
@@ -125,18 +148,11 @@ router.get("/time_first_comment/:repo_name", async (req, res, next) => {
     }
 
     const averageTimeInMinutes = (totalHours * 60 + totalMinutes) / totalCount;
-    const averageTimeString = `${Math.floor(averageTimeInMinutes / 60)}.${(
-      averageTimeInMinutes % 60
-    ).toFixed(2)}`;
-    console.log(
-      `totalhours: ${totalHours}, totalCount: ${totalCount}, totalMins ${totalMinutes}, avg: ${
-        averageTimeInMinutes / 60
-      }, avg: in String: ${averageTimeString}`
-    );
+    const averageTimeString = `${averageTimeInMinutes.toFixed(2)}`;
     const chartDataFormatted = [
       {
         id: "Time to First Comment",
-        color: "hsl(25, 70%, 50%)",
+        color: calculateLineColor(chartData),
         data: chartData,
       },
     ];
@@ -351,13 +367,13 @@ function getColor(avgResponseTime) {
   const mediumRiskThreshold = 72 * 3600 * 1000; // 72 hours in milliseconds
 
   if (avgResponseTime <= excellentThreshold) {
-    return "hsl(125, 70%, 50%)"; // Excellent (Green)
+    return "hsl(162, 100%, 41%)"; // Excellent (Green)
   } else if (avgResponseTime <= goodThreshold) {
-    return "hsl(270, 70%, 50%)"; // Good (Blue)
+    return "hsl(202, 100%, 50%)"; // Good (Blue)
   } else if (avgResponseTime <= mediumRiskThreshold) {
-    return "hsl(45, 70%, 50%)"; // Medium Risk (Yellow)
+    return "hsl(280, 85%, 36%)"; // Medium Risk (Yellow)
   } else {
-    return "hsl(0, 70%, 50%)"; // High Risk (Red)
+    return "hsl(352, 89%, 19%)"; // High Risk (Red)
   }
 }
 function formatResponseTime(avgResponseTime) {
@@ -403,13 +419,13 @@ router.get("/responsiveness/:repo_name", async (req, res, next) => {
 
 const calculateFollowOnCommitColor = (followOnCommitCount) => {
   if (followOnCommitCount >= 10) {
-    return "hsl(0, 70%, 50%)"; // High Risk (Red)
+    return "hsl(352, 89%, 19%)"; // High Risk (Red)
   } else if (followOnCommitCount >= 5) {
-    return "hsl(45, 70%, 50%)"; // Medium Risk (Yellow)
+    return "hsl(280, 85%, 36%)"; // Medium Risk (Yellow)
   } else if (followOnCommitCount >= 3) {
-    return "hsl(270, 70%, 50%)"; // Good (Blue)
+    return "hsl(202, 100%, 50%)"; // Good (Blue)
   } else {
-    return "hsl(125, 70%, 50%)"; // Elite (Green)
+    return "hsl(162, 100%, 41%)"; // Elite (Green)
   }
 };
 
