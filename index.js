@@ -16,52 +16,52 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.enable("trust proxy");
 
-app.use(
-  cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      process.env.GITHUB_CALLBACK_URL,
-    ],
-    credentials: true,
-    allowedHeaders:
-      "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
-    preflightContinue: true,
-  })
-);
+  app.use(
+    cors({
+      origin: [
+        process.env.FRONTEND_URL || "http://localhost:3000",
+        process.env.GITHUB_CALLBACK_URL,
+      ],
+      credentials: true,
+      allowedHeaders:
+        "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
+      preflightContinue: true,
+    })
+  );
 //Local Setup - For developemnt porpuse
-// app.use(
-//   session({
-//     secret: "secret",
-//     store: sessionStore,
-//     resave: true,
-//     saveUninitialized: true,
-//     cookie: {
-//       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
-//       secure: false,
-//       httpOnly: false,
-//       sameSite: false,
-//     },
-//   })
-// );
-
-//Deploy Setup ------ When developing please comment this, and before pushing uncomment the deploy setup
-//and comment out the local setup
-
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: "secret",
     store: sessionStore,
     resave: true,
     saveUninitialized: true,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
+      secure: false,
       httpOnly: false,
-      sameSite: "none",
-      domain: ".gitpulse.vercel.app",
-      secure: 'auto'
+      sameSite: false,
     },
   })
 );
+
+//Deploy Setup ------ When developing please comment this, and before pushing uncomment the deploy setup
+//and comment out the local setup
+
+// app.use(
+//   session({
+//     secret: process.env.SESSION_SECRET,
+//     store: sessionStore,
+//     resave: true,
+//     saveUninitialized: true,
+//     cookie: {
+//       maxAge: 7 * 24 * 60 * 60 * 1000, // The maximum age (in milliseconds) of a valid session.
+//       httpOnly: false,
+//       sameSite: "none",
+//       domain: ".gitpulse.vercel.app",
+//       secure: 'auto'
+//     },
+//   })
+// );
 
 app.use(passport.initialize());
 app.use(passport.session());
